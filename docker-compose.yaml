@@ -1,12 +1,14 @@
-version: "1"
+version: "3"
 
 services:
   comfyui:
     build: .
-
+    container_name: comfyui
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-
+      - USE_PERSISTENT_DATA=/data
+    volumes:
+      - ./data:/data
     ports:
       - 7860:7860
     deploy:
@@ -16,3 +18,19 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.comfyui.rule=Host(`comfy.baibaomen.com`)"
+      - "traefik.http.routers.comfyui.entrypoints=websecure"
+      - "traefik.http.routers.comfyui.tls.certresolver=myresolver"
+      - "traefik.http.routers.comfyui-http.rule=Host(`comfy.baibaomen.com`)"
+      - "traefik.http.routers.comfyui-http.entrypoints=web"
+      - "traefik.http.routers.comfyui-http.middlewares=redirect-to-https"
+      - "traefik.http.services.comfyui.loadbalancer.server.port=7860"
+    networks:
+      - traefik-net
+    restart: always
+
+networks:
+  traefik-net:
+    external: true
